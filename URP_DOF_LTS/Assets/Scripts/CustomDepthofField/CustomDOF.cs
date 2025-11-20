@@ -17,11 +17,11 @@ public class CustomDOF : VolumeComponent, IPostProcessComponent
     public ClampedIntParameter bladeCount = new ClampedIntParameter(5, 3, 9);
     public ClampedFloatParameter bladeCurvature = new ClampedFloatParameter(1f, 0f, 1f);
     public ClampedFloatParameter bladeRotation = new ClampedFloatParameter(0, -180f, 180f);
-    
+
 
 
     public bool IsActive() => true;
 
-    public bool IsTileCompatible() => true;
+    public bool IsTileCompatible() => false;
 
 }
