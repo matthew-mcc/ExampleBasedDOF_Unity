@@ -1,4 +1,4 @@
-using System.Collections;
+
 using System.Collections.Generic;
 
 using UnityEngine;
@@ -7,6 +7,12 @@ using UnityEngine.Rendering.Universal;
 
 public class CustomDOF_RenderFeature : ScriptableRendererFeature
 {
+
+
+    const int circleOfConfusionPass = 0;
+	const int bokehPass = 1;
+	const int postFilterPass = 2;
+
 
     [System.Serializable]
     public class DOFSettings
@@ -50,6 +56,19 @@ public class CustomDOF_RenderFeature : ScriptableRendererFeature
     {
         if (dofPass == null) return;
 
+        /*
+        var camData = renderingData.cameraData;
+
+        // Optional: avoid running on SceneView / preview / reflection cameras
+        if (camData.isSceneViewCamera ||
+            camData.cameraType == CameraType.Preview ||
+            camData.cameraType == CameraType.Reflection)
+            return;
+
+        // Optional: only when post-processing is enabled on this camera
+        if (!camData.postProcessEnabled)
+            return;
+        */
         renderer.EnqueuePass(dofPass);
     }
 
@@ -57,15 +76,24 @@ public class CustomDOF_RenderFeature : ScriptableRendererFeature
     class DOFPass : ScriptableRenderPass
     {
         private Material _mat;
-        private RenderTargetIdentifier _src;
-        private RenderTargetIdentifier _temp;
-        private int _tempRTId = Shader.PropertyToID("_CustomDOF_Temp");
+        // private RenderTargetIdentifier _src;
+        // private RenderTargetIdentifier _temp;
+        // private int _tempRTId = Shader.PropertyToID("_CustomDOF_Temp");
 
+        private int _cocRTId  = Shader.PropertyToID("_CustomDOF_CoC");
+        private int _dof0RTId = Shader.PropertyToID("_CustomDOF_DOF0");
+        private int _dof1RTId = Shader.PropertyToID("_CustomDOF_DOF1");
+
+        private RenderTargetIdentifier _src;
+        private RenderTargetIdentifier _cocRT;
+        private RenderTargetIdentifier _dof0RT;
+        private RenderTargetIdentifier _dof1RT;
 
         public DOFPass(Material mat)
         {
             _mat = mat;
             ConfigureInput(ScriptableRenderPassInput.Depth); // Not sure if needed
+            
         }
 
 
@@ -74,8 +102,16 @@ public class CustomDOF_RenderFeature : ScriptableRendererFeature
             RenderTextureDescriptor desc = renderingData.cameraData.cameraTargetDescriptor;
             desc.depthBufferBits = 0;
             _src = renderingData.cameraData.renderer.cameraColorTarget;
-            cmd.GetTemporaryRT(_tempRTId, desc, FilterMode.Bilinear);
-            _temp = new RenderTargetIdentifier(_tempRTId);
+            // cmd.GetTemporaryRT(_tempRTId, desc, FilterMode.Bilinear);
+            // _temp = new RenderTargetIdentifier(_tempRTId);
+
+            cmd.GetTemporaryRT(_cocRTId,  desc, FilterMode.Bilinear);
+            cmd.GetTemporaryRT(_dof0RTId, desc, FilterMode.Bilinear);
+            cmd.GetTemporaryRT(_dof1RTId, desc, FilterMode.Bilinear);
+
+            _cocRT  = new RenderTargetIdentifier(_cocRTId);
+            _dof0RT = new RenderTargetIdentifier(_dof0RTId);
+            _dof1RT = new RenderTargetIdentifier(_dof1RTId);
         }
         
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
@@ -95,21 +131,26 @@ public class CustomDOF_RenderFeature : ScriptableRendererFeature
 
             _mat.SetFloat("_FocusDistance", dofSettings.focusDistance.value);
             _mat.SetFloat("_FocusRange", dofSettings.focalLength.value);
-            // _mat.SetFloat("_FocusDistance", dofSettings.focusDistance.value);
-            // _mat.SetFloat("_Aperture", dofSettings.aperture.value);
-            // _mat.SetFloat("_FocalLength", dofSettings.focalLength.value);
+            _mat.SetFloat("_Aperture", dofSettings.aperture.value);
 
-            // // Bokeh things
-            // _mat.SetInt("_BladeCount", dofSettings.bladeCount.value);
-            // _mat.SetFloat("_BladeCurvature", dofSettings.bladeCurvature.value);
-            // _mat.SetFloat("_BladeRotation", dofSettings.bladeRotation.value * Mathf.Deg2Rad); // not sure if we need to convert here
+            // (1) coc pass: source -> coc RT (pass 0 in shader)
+            Blit(commandBuffer, _src, _cocRT, _mat, circleOfConfusionPass);
 
+            // (DOESNT WORK: ) _mat.SetTexture("_CoCTex", _cocRT);
+            
+            // (2) Bokeh pass: source (color) -> DOF0 RT (pass 1 in shader)
+            Blit(commandBuffer, _src, _dof0RT, _mat, bokehPass);
 
-            // first, blur into temp
-            Blit(commandBuffer, _src, _temp, _mat, 0);
+            // (3) post-filter pass: DOF0 -> DOF1 (pass 2 in shader)
+            Blit(commandBuffer, _dof0RT, _dof1RT, _mat, postFilterPass);
 
-            // next, composite back to source // NOT ENTIRELY SURE IF THIS IS CORRECT
-            Blit(commandBuffer, _temp, _src);
+            // (4) final!
+            Blit(commandBuffer, _dof1RT, _src);
+            // // first, blur into temp
+            // Blit(commandBuffer, _src, _temp, _mat, 2); // switch between different passes in shader
+
+            // // next, composite back to source // NOT ENTIRELY SURE IF THIS IS CORRECT
+            // Blit(commandBuffer, _temp, _src);
 
             context.ExecuteCommandBuffer(commandBuffer);
             CommandBufferPool.Release(commandBuffer);
@@ -117,7 +158,9 @@ public class CustomDOF_RenderFeature : ScriptableRendererFeature
 
         public override void OnCameraCleanup(CommandBuffer cmd)
         {
-            cmd.ReleaseTemporaryRT(_tempRTId);
+            cmd.ReleaseTemporaryRT(_cocRTId);
+            cmd.ReleaseTemporaryRT(_dof0RTId);
+            cmd.ReleaseTemporaryRT(_dof1RTId);
         }
 
     }

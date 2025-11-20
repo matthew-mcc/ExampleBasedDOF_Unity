@@ -8,7 +8,7 @@ Shader "Hidden/Custom/CustomDOF_Bokeh" {
 
 		sampler2D _MainTex, _CameraDepthTexture;
 		float4 _MainTex_TexelSize;
-        float _FocusDistance, _FocusRange;
+        float _FocusDistance, _FocusRange, _Aperture; // _Aperture is bokehRadius
 
 		struct VertexData {
 			float4 vertex : POSITION;
@@ -34,16 +34,107 @@ Shader "Hidden/Custom/CustomDOF_Bokeh" {
 		ZTest Always
 		ZWrite Off
 
+        // circle of confusion pass
 		Pass {
 			CGPROGRAM
 				#pragma vertex VertexProgram
 				#pragma fragment FragmentProgram
 
-				half4 FragmentProgram (Interpolators i) : SV_Target {
+				half FragmentProgram (Interpolators i) : SV_Target {
                     half depth = SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, i.uv);
 					depth = LinearEyeDepth(depth);
                     float coc = (depth - _FocusDistance) / _FocusRange;
+                    coc = clamp(coc, -1, 1);
 					return coc;
+				}
+			ENDCG
+		}
+
+        // bokeh pass
+        Pass{
+            CGPROGRAM
+                #pragma vertex VertexProgram
+                #pragma fragment FragmentProgram
+
+                #define BOKEH_KERNEL_MEDIUM
+                // From https://github.com/Unity-Technologies/PostProcessing/
+				// blob/v2/PostProcessing/Shaders/Builtins/DiskKernels.hlsl
+                
+                #if defined(BOKEH_KERNEL_SMALL)
+                static const int kernelSampleCount = 16;
+				static const float2 kernel[kernelSampleCount] = {
+					float2(0, 0),
+					float2(0.54545456, 0),
+					float2(0.16855472, 0.5187581),
+					float2(-0.44128203, 0.3206101),
+					float2(-0.44128197, -0.3206102),
+					float2(0.1685548, -0.5187581),
+					float2(1, 0),
+					float2(0.809017, 0.58778524),
+					float2(0.30901697, 0.95105654),
+					float2(-0.30901703, 0.9510565),
+					float2(-0.80901706, 0.5877852),
+					float2(-1, 0),
+					float2(-0.80901694, -0.58778536),
+					float2(-0.30901664, -0.9510566),
+					float2(0.30901712, -0.9510565),
+					float2(0.80901694, -0.5877853),
+				};
+
+                #elif defined (BOKEH_KERNEL_MEDIUM)
+                static const int kernelSampleCount = 22;
+					static const float2 kernel[kernelSampleCount] = {
+						float2(0, 0),
+						float2(0.53333336, 0),
+						float2(0.3325279, 0.4169768),
+						float2(-0.11867785, 0.5199616),
+						float2(-0.48051673, 0.2314047),
+						float2(-0.48051673, -0.23140468),
+						float2(-0.11867763, -0.51996166),
+						float2(0.33252785, -0.4169769),
+						float2(1, 0),
+						float2(0.90096885, 0.43388376),
+						float2(0.6234898, 0.7818315),
+						float2(0.22252098, 0.9749279),
+						float2(-0.22252095, 0.9749279),
+						float2(-0.62349, 0.7818314),
+						float2(-0.90096885, 0.43388382),
+						float2(-1, 0),
+						float2(-0.90096885, -0.43388376),
+						float2(-0.6234896, -0.7818316),
+						float2(-0.22252055, -0.974928),
+						float2(0.2225215, -0.9749278),
+						float2(0.6234897, -0.7818316),
+						float2(0.90096885, -0.43388376),
+					};
+                #endif
+                half4 FragmentProgram (Interpolators i) : SV_Target{
+                    half3 color = 0;
+                    for (int k = 0; k < kernelSampleCount; k++) {
+						float2 o = kernel[k];
+						o *= _MainTex_TexelSize.xy * _Aperture;
+						color += tex2D(_MainTex, i.uv + o).rgb;
+					}
+					color *= 1.0 / kernelSampleCount;
+					return half4(color, 1);
+                }
+            ENDCG
+        }
+
+        // postfilter pass
+        Pass {
+			CGPROGRAM
+				#pragma vertex VertexProgram
+				#pragma fragment FragmentProgram
+
+				half4 FragmentProgram (Interpolators i) : SV_Target {
+					float4 o = _MainTex_TexelSize.xyxy * float2(-0.5, 0.5).xxyy;
+					half4 s =
+						tex2D(_MainTex, i.uv + o.xy) +
+						tex2D(_MainTex, i.uv + o.zy) +
+						tex2D(_MainTex, i.uv + o.xw) +
+						tex2D(_MainTex, i.uv + o.zw);
+					return s * 0.25;
 				}
 			ENDCG
 		}
@@ -51,144 +142,3 @@ Shader "Hidden/Custom/CustomDOF_Bokeh" {
 }
 
 
-
-// Shader "Hidden/Custom/CustomDOF_Bokeh"
-// {
-    // Properties
-    // {
-        // _MainTex ("Source", 2D) = "white" {}
-    // }
-
-    // SubShader
-    // {
-        // Tags { "RenderPipeline"="UniversalPipeline" "RenderType"="Opaque" }
-
-        // Pass
-        // {
-            // Name "CustomDOF_Bokeh"
-            // ZTest Always ZWrite Off Cull Off
-
-            // HLSLPROGRAM
-
-            // #pragma vertex vert
-            // #pragma fragment frag
-
-            // #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-
-            // // Color texture
-            // TEXTURE2D(_MainTex);
-            // SAMPLER(sampler_MainTex);
-
-            // // Camera depth texture (need setting enabled in URP don't forget that sir)
-            // TEXTURE2D_X(_CameraDepthTexture);
-            // SAMPLER(sampler_CameraDepthTexture);
-
-            // float _FocusDistance;
-            // float _Aperture;
-            // float _FocalLength;
-
-            // // TODO: these are not used, but kept for completeness (probably should use them?)
-            // int   _BladeCount;
-            // float _BladeCurvature;
-            // float _BladeRotation;
-
-            // struct Attributes
-            // {
-                // float4 positionOS : POSITION;
-                // float2 uv         : TEXCOORD0;
-            // };
-
-            // struct Varyings
-            // {
-                // float4 positionHCS : SV_POSITION;
-                // float2 uv          : TEXCOORD0;
-            // };
-
-            // Varyings vert (Attributes v)
-            // {
-                // Varyings o;
-                // o.positionHCS = TransformObjectToHClip(v.positionOS.xyz);
-                // o.uv = v.uv;
-                // return o;
-            // }
-
-            // // Helper: sample scene depth and convert to linear eye depth
-            // float GetLinearEyeDepth(float2 uv)
-            // {
-                // float raw = SAMPLE_TEXTURE2D_X(_CameraDepthTexture, sampler_CameraDepthTexture, uv).r;
-                // return LinearEyeDepth(raw, _ZBufferParams);
-            // }
-
-            // float ComputeCoC(float eyeDepth)
-            // {
-                // // Very simple CoC model: proportional to distance from focus plane
-                // // TODO: replace this with a more physically-accurate model
-                // float focus = _FocusDistance;
-                // float coc = abs(eyeDepth - focus) * _Aperture * 0.01;   // arbitrary scale
-                // // Clamp to prevent insane radii
-                // return saturate(coc);
-            // }
-
-            // // TODO: REPLACE IMMEDIATLY!
-            // // Hardcoded small Poisson disk as a placeholder for future custom sampling
-            // static const int SAMPLE_COUNT = 8;
-            // static const float2 SAMPLE_OFFSETS[SAMPLE_COUNT] = {
-                // float2( 0.0,  0.0),
-                // float2( 0.4,  0.1),
-                // float2(-0.3,  0.3),
-                // float2( 0.2, -0.4),
-                // float2(-0.4, -0.2),
-                // float2( 0.1,  0.5),
-                // float2( 0.5, -0.1),
-                // float2(-0.5,  0.0)
-            // };
-
-            // float4 frag (Varyings i) : SV_Target
-            // {
-                // // return float4(1, 0, 0, 1);
-                // float2 uv = i.uv;
-
-                // // Depth & CoC
-                // float eyeDepth = GetLinearEyeDepth(uv);
-                // float coc      = ComputeCoC(eyeDepth);
-
-                // // Convert CoC (0–1) to a radius in pixels
-                // float maxRadiusPixels = 12.0; // should probably expose as a parm? tweakable I think...
-                // float radiusPixels = coc * maxRadiusPixels;
-
-                // // If in focus, just return original color
-                // if (radiusPixels < 0.5)
-                // {
-                    // return SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uv);
-                // }
-
-                // float2 texelSize = 1.0 / _ScreenParams.xy;
-
-                // float3 accum = 0.0;
-                // float  weight = 0.0;
-
-                // // Simple gather blur over small disk using our sample offsets
-                // [unroll]
-                // for (int s = 0; s < SAMPLE_COUNT; s++)
-                // {
-                    // float2 dir = SAMPLE_OFFSETS[s];
-                    // float2 sampleUv = uv + dir * radiusPixels * texelSize;
-
-                    // float4 c = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, sampleUv);
-
-                    // // Weight: center samples more, outer samples slightly less
-                    // float w = 1.0; // could be length-based
-                    // accum += c.rgb * w;
-                    // weight += w;
-                // }
-
-                // float3 blurred = accum / max(weight, 1e-4);
-                // return float4(blurred, 1.0);
-            // }
-
-            // ENDHLSL
-        // }
-    // }
-
-    // FallBack Off
-// }
