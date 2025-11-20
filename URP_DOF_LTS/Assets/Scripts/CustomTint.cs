@@ -6,7 +6,7 @@ using UnityEngine.Rendering.Universal;
 
 
 [Serializable, VolumeComponentMenuForRenderPipeline ("CustomFeatures/SamplingDoF", typeof(UniversalRenderPipeline))]
-public class SamplingDoF : VolumeComponent, IPostProcessComponent
+public class CustomTint : VolumeComponent, IPostProcessComponent
 {
 
     public FloatParameter tintIntensity = new FloatParameter(1);

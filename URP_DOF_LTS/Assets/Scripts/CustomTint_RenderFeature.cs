@@ -4,34 +4,34 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
-public class SampleDoF_RenderFeature : ScriptableRendererFeature
+public class CustomTint_RenderFeature : ScriptableRendererFeature
 {
 
-    private DoFPass dofPass;
+    private TintPass tintPass;
 
     public override void Create()
     {
-        dofPass = new DoFPass();
+        tintPass = new TintPass();
     }
     // Adding which passes we want to do!
     public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
     {
-        renderer.EnqueuePass(dofPass);
+        renderer.EnqueuePass(tintPass);
     }
 
 
-    class DoFPass : ScriptableRenderPass
+    class TintPass : ScriptableRenderPass
     {
 
         private Material _mat;
-        int dofId = Shader.PropertyToID("_Temp");
-        RenderTargetIdentifier src, dof;
+        int tintId = Shader.PropertyToID("_Temp");
+        RenderTargetIdentifier src, tint;
 
-        public DoFPass()
+        public TintPass()
         {
             if (!_mat)
             {
-                _mat = CoreUtils.CreateEngineMaterial("Unlit/URPDoF"); // NOT SURE ABOUT THIS
+                _mat = CoreUtils.CreateEngineMaterial("Unlit/CustomTintShader"); // NOT SURE ABOUT THIS
             }
             renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing;
         }
@@ -41,24 +41,24 @@ public class SampleDoF_RenderFeature : ScriptableRendererFeature
             // base.OnCameraSetup(cmd, ref renderingData);
             RenderTextureDescriptor desc = renderingData.cameraData.cameraTargetDescriptor;
             src = renderingData.cameraData.renderer.cameraColorTarget;
-            cmd.GetTemporaryRT(dofId, desc, FilterMode.Bilinear);
-            dof = new RenderTargetIdentifier(dofId);
+            cmd.GetTemporaryRT(tintId, desc, FilterMode.Bilinear);
+            tint = new RenderTargetIdentifier(tintId);
         }
 
         // Executing the pass / buffer
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
-            CommandBuffer commandBuffer = CommandBufferPool.Get("SampleDoF_RenderFeature");
+            CommandBuffer commandBuffer = CommandBufferPool.Get("CustomTint_RenderFeature");
             VolumeStack volumes = VolumeManager.instance.stack;
-            SamplingDoF dofData = volumes.GetComponent<SamplingDoF>();
-            if (dofData.IsActive())
+            CustomTint tintData = volumes.GetComponent<CustomTint>();
+            if (tintData.IsActive())
             {
-                _mat.SetColor("_OverlayColor", (Color)dofData.tintColor);
-                _mat.SetFloat("_Intensity", (float)dofData.tintIntensity);
+                _mat.SetColor("_OverlayColor", (Color)tintData.tintColor);
+                _mat.SetFloat("_Intensity", (float)tintData.tintIntensity);
 
-                Blit(commandBuffer, src, dof, _mat, 0);
+                Blit(commandBuffer, src, tint, _mat, 0);
                 
-                Blit(commandBuffer, dof, src);
+                Blit(commandBuffer, tint, src);
             }
 
             context.ExecuteCommandBuffer(commandBuffer);
@@ -68,7 +68,7 @@ public class SampleDoF_RenderFeature : ScriptableRendererFeature
         public override void OnCameraCleanup(CommandBuffer cmd)
         {
             // base.OnCameraCleanup(cmd);
-            cmd.ReleaseTemporaryRT(dofId);
+            cmd.ReleaseTemporaryRT(tintId);
         }
 
     }
