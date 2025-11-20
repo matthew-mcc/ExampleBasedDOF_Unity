@@ -5,7 +5,7 @@ using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
 
-[Serializable, VolumeComponentMenuForRenderPipeline ("CustomFeatures/SamplingDoF", typeof(UniversalRenderPipeline))]
+[Serializable, VolumeComponentMenuForRenderPipeline ("CustomFeatures/CustomTint", typeof(UniversalRenderPipeline))]
 public class CustomTint : VolumeComponent, IPostProcessComponent
 {
 
