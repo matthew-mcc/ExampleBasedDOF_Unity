@@ -133,6 +133,7 @@ public class CustomDOF_RenderFeature : ScriptableRendererFeature
             _mat.SetFloat("_FocusRange", dofSettings.focalLength.value);
             _mat.SetFloat("_Aperture", dofSettings.aperture.value);
 
+            // ===== CURRENT BLUR =====
             // (1) coc pass: source -> coc RT (pass 0 in shader)
             Blit(commandBuffer, _src, _cocRT, _mat, circleOfConfusionPass);
 
@@ -148,6 +149,17 @@ public class CustomDOF_RenderFeature : ScriptableRendererFeature
             Blit(commandBuffer, _dof1RT, _src);
             // // first, blur into temp
             // Blit(commandBuffer, _src, _temp, _mat, 2); // switch between different passes in shader
+
+            // ===== END CURRENT BLUR =====
+
+            // ===== RED / BLACK EFFECT =====
+            // (1) CoC: source -> CoC RT
+            Blit(commandBuffer, _src, _cocRT, _mat, circleOfConfusionPass);
+
+            // DEBUG: show CoC on screen
+            Blit(commandBuffer, _cocRT, _src);
+
+            // ===== END RED / BLACK EFFECT =====
 
             // // next, composite back to source // NOT ENTIRELY SURE IF THIS IS CORRECT
             // Blit(commandBuffer, _temp, _src);

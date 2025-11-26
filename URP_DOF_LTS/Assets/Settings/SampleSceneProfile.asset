@@ -84,13 +84,13 @@ MonoBehaviour:
   active: 1
   focusDistance:
     m_OverrideState: 1
-    m_Value: 0.1
+    m_Value: 7.04
   aperture:
     m_OverrideState: 1
     m_Value: 1
   focalLength:
     m_OverrideState: 1
-    m_Value: 1
+    m_Value: 50
 --- !u!114 &-515964143645234773
 MonoBehaviour:
   m_ObjectHideFlags: 3
