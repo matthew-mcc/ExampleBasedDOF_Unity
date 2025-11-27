@@ -11,14 +11,23 @@ using UnityEngine.Rendering.Universal;
 public class CustomDOF : VolumeComponent, IPostProcessComponent
 {
 
-    public MinFloatParameter focusDistance = new MinFloatParameter(10f, 0.1f);
-    public ClampedFloatParameter aperture = new ClampedFloatParameter(5.6f, 1f, 32f);
-    public ClampedFloatParameter focalLength = new ClampedFloatParameter(50, 1, 300f);
-
+    public ClampedFloatParameter focusDistance = new ClampedFloatParameter(10f, 0.1f, 100f);
+    public ClampedFloatParameter aperture = new ClampedFloatParameter(3f, 0.1f, 100f);
+    public ClampedFloatParameter focalLength = new ClampedFloatParameter(4f, 1f, 10f);
 
 
 
     public bool IsActive() => true;
+    // public bool IsActive()
+    // {
+        // if (!active)
+        // {
+            // return false;
+        // }
+        
+        // return aperture.value > 0.001f;
+
+    // }
 
     public bool IsTileCompatible() => false;
 
