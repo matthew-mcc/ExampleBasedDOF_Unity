@@ -10,6 +10,13 @@ Shader "Hidden/Custom/CustomDOF_Bokeh" {
 		float4 _MainTex_TexelSize;
         float _FocusDistance, _FocusRange, _Aperture; // _Aperture is bokehRadius
 
+		// Custom Sampling
+		CBUFFER_START(UnityPerMaterial)
+			int _KernelCount;
+		CBUFFER_END
+
+		float4 _Kernel[256]; // need to find a way to not hard code this lol
+
 		struct VertexData {
 			float4 vertex : POSITION;
 			float2 uv : TEXCOORD0;
@@ -41,12 +48,13 @@ Shader "Hidden/Custom/CustomDOF_Bokeh" {
 				#pragma fragment FragmentProgram
 
 				half FragmentProgram (Interpolators i) : SV_Target {
-                    half depth = SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, i.uv);
-					depth = LinearEyeDepth(depth);
-                    float coc = (depth - _FocusDistance) / _FocusRange;
-                    coc = clamp(coc, -1, 1) * _Aperture;
-					// return coc;
-					return half4(coc, coc, coc, 1);
+	                half depth = SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, i.uv);
+    				depth = LinearEyeDepth(depth);
+
+    				float coc = (depth - _FocusDistance) / _FocusRange;
+					// coc = clamp(coc, -1, 1) * _Aperture;
+					coc = clamp(coc, -1, 1);
+    				return half4(coc, coc, coc, 1);
 				}
 			ENDCG
 		}
@@ -57,28 +65,28 @@ Shader "Hidden/Custom/CustomDOF_Bokeh" {
 				#pragma fragment FragmentProgram
 
 				half4 FragmentProgram (Interpolators i) : SV_Target {
-					// Still read CoC from _CoCTex (you can later put the min/max logic back)
-        			half coc = tex2D(_CoCTex, i.uv).r;
+					// // Still read CoC from _CoCTex (you can later put the min/max logic back)
+        			// half coc = tex2D(_CoCTex, i.uv).r;
 
-        			// Sample original color from _MainTex
-        			half3 col = tex2D(_MainTex, i.uv).rgb;
+        			// // Sample original color from _MainTex
+        			// half3 col = tex2D(_MainTex, i.uv).rgb;
 
-        			// Write color + CoC in alpha
-        			return half4(col, coc);
-					// half coc = tex2D(_CoCTex, i.uv).r;
-					// return half4(coc, coc, coc, 1);
-					// float4 o = _MainTex_TexelSize.xyxy * float2(-0.5, 0.5).xxyy;
-					// half coc0 = tex2D(_CoCTex, i.uv + o.xy).r;
-					// half coc1 = tex2D(_CoCTex, i.uv + o.zy).r;
-					// half coc2 = tex2D(_CoCTex, i.uv + o.xw).r;
-					// half coc3 = tex2D(_CoCTex, i.uv + o.zw).r;
+        			// // Write color + CoC in alpha
+        			// return half4(col, coc);
+
+
+					float4 o = _MainTex_TexelSize.xyxy * float2(-0.5, 0.5).xxyy;
+					half coc0 = tex2D(_CoCTex, i.uv + o.xy).r;
+					half coc1 = tex2D(_CoCTex, i.uv + o.zy).r;
+					half coc2 = tex2D(_CoCTex, i.uv + o.xw).r;
+					half coc3 = tex2D(_CoCTex, i.uv + o.zw).r;
 					
-					// half cocMin = min(min(min(coc0, coc1), coc2), coc3);
-					// half cocMax = max(max(max(coc0, coc1), coc2), coc3);
-					// half coc = cocMax >= -cocMin ? cocMax : cocMin;
-					// // half coc = (coc0 + coc1 + coc2 + coc3) * 0.25;
+					half cocMin = min(min(min(coc0, coc1), coc2), coc3);
+					half cocMax = max(max(max(coc0, coc1), coc2), coc3);
+					half coc = cocMax >= -cocMin ? cocMax : cocMin;
+					// half coc = (coc0 + coc1 + coc2 + coc3) * 0.25;
 
-					// return half4(tex2D(_MainTex, i.uv).rgb, coc);
+					return half4(tex2D(_MainTex, i.uv).rgb, coc);
 				}
 			ENDCG
 		}
@@ -89,74 +97,81 @@ Shader "Hidden/Custom/CustomDOF_Bokeh" {
                 #pragma vertex VertexProgram
                 #pragma fragment FragmentProgram
 
-                #define BOKEH_KERNEL_MEDIUM
-                // From https://github.com/Unity-Technologies/PostProcessing/
-				// blob/v2/PostProcessing/Shaders/Builtins/DiskKernels.hlsl
-                
-                #if defined(BOKEH_KERNEL_SMALL)
-                static const int kernelSampleCount = 16;
-				static const float2 kernel[kernelSampleCount] = {
-					float2(0, 0),
-					float2(0.54545456, 0),
-					float2(0.16855472, 0.5187581),
-					float2(-0.44128203, 0.3206101),
-					float2(-0.44128197, -0.3206102),
-					float2(0.1685548, -0.5187581),
-					float2(1, 0),
-					float2(0.809017, 0.58778524),
-					float2(0.30901697, 0.95105654),
-					float2(-0.30901703, 0.9510565),
-					float2(-0.80901706, 0.5877852),
-					float2(-1, 0),
-					float2(-0.80901694, -0.58778536),
-					float2(-0.30901664, -0.9510566),
-					float2(0.30901712, -0.9510565),
-					float2(0.80901694, -0.5877853),
-				};
+				#pragma target 3.5 // don't think we need this...
 
-                #elif defined (BOKEH_KERNEL_MEDIUM)
-                static const int kernelSampleCount = 22;
-					static const float2 kernel[kernelSampleCount] = {
-						float2(0, 0),
-						float2(0.53333336, 0),
-						float2(0.3325279, 0.4169768),
-						float2(-0.11867785, 0.5199616),
-						float2(-0.48051673, 0.2314047),
-						float2(-0.48051673, -0.23140468),
-						float2(-0.11867763, -0.51996166),
-						float2(0.33252785, -0.4169769),
-						float2(1, 0),
-						float2(0.90096885, 0.43388376),
-						float2(0.6234898, 0.7818315),
-						float2(0.22252098, 0.9749279),
-						float2(-0.22252095, 0.9749279),
-						float2(-0.62349, 0.7818314),
-						float2(-0.90096885, 0.43388382),
-						float2(-1, 0),
-						float2(-0.90096885, -0.43388376),
-						float2(-0.6234896, -0.7818316),
-						float2(-0.22252055, -0.974928),
-						float2(0.2225215, -0.9749278),
-						float2(0.6234897, -0.7818316),
-						float2(0.90096885, -0.43388376),
-					};
-                #endif
+                // #define BOKEH_KERNEL_MEDIUM
+                // // From https://github.com/Unity-Technologies/PostProcessing/
+				// // blob/v2/PostProcessing/Shaders/Builtins/DiskKernels.hlsl
+                
+                // #if defined(BOKEH_KERNEL_SMALL)
+                // static const int kernelSampleCount = 16;
+				// static const float2 kernel[kernelSampleCount] = {
+					// float2(0, 0),
+					// float2(0.54545456, 0),
+					// float2(0.16855472, 0.5187581),
+					// float2(-0.44128203, 0.3206101),
+					// float2(-0.44128197, -0.3206102),
+					// float2(0.1685548, -0.5187581),
+					// float2(1, 0),
+					// float2(0.809017, 0.58778524),
+					// float2(0.30901697, 0.95105654),
+					// float2(-0.30901703, 0.9510565),
+					// float2(-0.80901706, 0.5877852),
+					// float2(-1, 0),
+					// float2(-0.80901694, -0.58778536),
+					// float2(-0.30901664, -0.9510566),
+					// float2(0.30901712, -0.9510565),
+					// float2(0.80901694, -0.5877853),
+				// };
+
+                // #elif defined (BOKEH_KERNEL_MEDIUM)
+                // static const int kernelSampleCount = 22;
+					// static const float2 kernel[kernelSampleCount] = {
+						// float2(0, 0),
+						// float2(0.53333336, 0),
+						// float2(0.3325279, 0.4169768),
+						// float2(-0.11867785, 0.5199616),
+						// float2(-0.48051673, 0.2314047),
+						// float2(-0.48051673, -0.23140468),
+						// float2(-0.11867763, -0.51996166),
+						// float2(0.33252785, -0.4169769),
+						// float2(1, 0),
+						// float2(0.90096885, 0.43388376),
+						// float2(0.6234898, 0.7818315),
+						// float2(0.22252098, 0.9749279),
+						// float2(-0.22252095, 0.9749279),
+						// float2(-0.62349, 0.7818314),
+						// float2(-0.90096885, 0.43388382),
+						// float2(-1, 0),
+						// float2(-0.90096885, -0.43388376),
+						// float2(-0.6234896, -0.7818316),
+						// float2(-0.22252055, -0.974928),
+						// float2(0.2225215, -0.9749278),
+						// float2(0.6234897, -0.7818316),
+						// float2(0.90096885, -0.43388376),
+					// };
+                // #endif
                 half4 FragmentProgram (Interpolators i) : SV_Target{
 		            half4 center = tex2D(_MainTex, i.uv);
-        			half coc = abs(center.a);          // CoC stored in alpha
+        			half coc = abs(center.a); // CoC stored in alpha
         			half3 color = 0;
         			half  weightSum = 0;
 
-        			// Optional: bump CoC a bit
-        			coc *= 2.0;
+					int count = _KernelCount;
+					if (count <= 0){
+						return center;
+					}
 
-        			for (int k = 0; k < kernelSampleCount; k++) {
-            			// Scale radius by CoC and Aperture
-            			float2 o = kernel[k] * coc * _Aperture;
-            			o *= _MainTex_TexelSize.xy;
+					
+        			for (int k = 0; k < count; k++) {
 
+						float2 dir = _Kernel[k].xy;    // AI-sampler direction in [-1,1]
+            			float radius = saturate(coc) * _Aperture;
+
+            			float2 o = dir * radius * _MainTex_TexelSize.xy;
             			half3 sampleCol = tex2D(_MainTex, i.uv + o).rgb;
-            			color += sampleCol;
+
+            			color     += sampleCol;
             			weightSum += 1.0h;
         			}
 
