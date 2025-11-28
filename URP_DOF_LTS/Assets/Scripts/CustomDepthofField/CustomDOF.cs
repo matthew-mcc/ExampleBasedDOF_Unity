@@ -11,8 +11,8 @@ using UnityEngine.Rendering.Universal;
 public class CustomDOF : VolumeComponent, IPostProcessComponent
 {
 
-    public ClampedFloatParameter focusDistance = new ClampedFloatParameter(10f, 0.1f, 100f);
-    public ClampedFloatParameter aperture = new ClampedFloatParameter(3f, 0.1f, 100f);
+    public ClampedFloatParameter focusDistance = new ClampedFloatParameter(1f, 1f, 20f);
+    public ClampedFloatParameter aperture = new ClampedFloatParameter(1f, 1f, 20f);
     public ClampedFloatParameter focalLength = new ClampedFloatParameter(4f, 1f, 10f);
 
 

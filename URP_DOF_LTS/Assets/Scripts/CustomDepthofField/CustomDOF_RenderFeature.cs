@@ -30,9 +30,8 @@ public class CustomDOF_RenderFeature : ScriptableRendererFeature
     {
         try
         {
-            Debug.Log($"[LoadNpyFile] Reading file: {filepath}");
+
             byte[] bytes = File.ReadAllBytes(filepath);
-            Debug.Log($"[LoadNpyFile] bytes.Length = {bytes.Length}");
             // --- 1. Basic header parsing (NPY v1.0) ---
             // magic string: \x93NUMPY
             if (bytes.Length < 10 ||
@@ -55,8 +54,6 @@ public class CustomDOF_RenderFeature : ScriptableRendererFeature
             int headerStart = 10;
             string header = Encoding.ASCII.GetString(bytes, headerStart, headerLen);
 
-            // Optional: log header for debugging
-            Debug.Log($"NPY header: {header}");
 
             // --- 2. (Optional) parse dtype & shape from header ---
             var descrMatch = Regex.Match(header, @"'descr':\s*'([^']+)'");
@@ -78,7 +75,6 @@ public class CustomDOF_RenderFeature : ScriptableRendererFeature
                         dims.Add(v);
                 }
                 shape = dims.ToArray();
-                Debug.Log($"NPY shape: ({string.Join(", ", shape)})");
             }
 
             // --- 3. Read raw float64 data ---
@@ -100,13 +96,6 @@ public class CustomDOF_RenderFeature : ScriptableRendererFeature
                 samples[i] = new Vector2(x, y);
             }
 
-            // --- 4. Debug print a few samples ---
-            Debug.Log($"Loaded {samples.Length} samples from {filepath}");
-            int toPrint = Mathf.Min(8, samples.Length);
-            for (int i = 0; i < toPrint; i++)
-            {
-                Debug.Log($"Sample {i}: {samples[i]}");
-            }
             int n = Mathf.Min(samples.Length, MaxKernelSize);
             s_Kernel = new Vector4[n];
             for (int i = 0; i < n; i++)
@@ -161,7 +150,6 @@ public class CustomDOF_RenderFeature : ScriptableRendererFeature
         }
 
         string fullPath = System.IO.Path.Combine(Application.streamingAssetsPath, npyRelativePath);
-        Debug.Log($"[CustomDOF] Trying to load NPY from: {fullPath}");
         _poissonSamples = LoadNpyFile(fullPath);
 
 

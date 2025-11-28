@@ -1,6 +1,9 @@
 using System.Collections;
+using TMPro;
 using UnityEngine;
 using UnityEngine.Networking;
+using UnityEngine.Profiling;
+using UnityEngine.UI;
 
 [System.Serializable]
 public class SampleRequestDTO
@@ -33,11 +36,21 @@ public class FastAPIClient : MonoBehaviour
     public string samplerName = "Owen";
     public int points = 256;
 
+    // UI Things
+    [SerializeField]
+    public TMP_Dropdown sampler_dropdown;
+
     // Connected to button
     public void RequestNewKernel()
     {
         Debug.Log("[Unity] Requesting new kernel from server...");
         StartCoroutine(SendTestRequest());
+    }
+
+    public void SetSampler()
+    {
+        samplerName = sampler_dropdown.options[sampler_dropdown.value].text;
+        Debug.Log($"[Unity] Changing sampler to: {samplerName}");
     }
 
     // void Start()
