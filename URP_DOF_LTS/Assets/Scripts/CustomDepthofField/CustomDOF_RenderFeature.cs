@@ -244,14 +244,31 @@ public class CustomDOF_RenderFeature : ScriptableRendererFeature
             _mat.SetFloat("_FocusRange", dofSettings.focalLength.value);
             _mat.SetFloat("_Aperture", dofSettings.aperture.value);
 
-            if(s_Kernel != null && s_KernelCount > 0)
+            // if(s_Kernel != null && s_KernelCount > 0)
+            // {
+                // _mat.SetInt("_KernelCount", s_KernelCount);
+                // _mat.SetVectorArray("_Kernel", s_Kernel);
+            // }
+            // else
+            // {
+                // Debug.Log("S_kernel doesn't exist, or count < 0");
+                // _mat.SetInt("_KernelCount", 0);
+            // }
+
+            if (MLKernelStore.Kernel != null && MLKernelStore.Kernel.Length > 0)
+            {
+                int count = MLKernelStore.Kernel.Length;
+                _mat.SetInt("_KernelCount", count);
+                _mat.SetVectorArray("_Kernel", MLKernelStore.Kernel);
+            }
+            else if (s_Kernel != null && s_KernelCount > 0)
             {
                 _mat.SetInt("_KernelCount", s_KernelCount);
                 _mat.SetVectorArray("_Kernel", s_Kernel);
             }
             else
             {
-                Debug.Log("S_kernel doesn't exist, or count < 0");
+                Debug.Log("No kernel available (MLKernelStore and s_Kernel both empty)");
                 _mat.SetInt("_KernelCount", 0);
             }
 
