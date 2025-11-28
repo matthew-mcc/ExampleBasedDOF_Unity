@@ -30,8 +30,9 @@ public class CustomDOF_RenderFeature : ScriptableRendererFeature
     {
         try
         {
+            Debug.Log($"[LoadNpyFile] Reading file: {filepath}");
             byte[] bytes = File.ReadAllBytes(filepath);
-
+            Debug.Log($"[LoadNpyFile] bytes.Length = {bytes.Length}");
             // --- 1. Basic header parsing (NPY v1.0) ---
             // magic string: \x93NUMPY
             if (bytes.Length < 10 ||
@@ -139,7 +140,7 @@ public class CustomDOF_RenderFeature : ScriptableRendererFeature
     private DOFPass dofPass;
     // private Material dofMat;
 
-    public string npyRelativePath = "poisson_256_20000iters.npy"; // set in Inspector if you like
+    public string npyRelativePath = "Owen_16x16.npy"; // TODO: move to inspector..
     private static Vector2[] _poissonSamples;
 
     public override void Create()
@@ -160,6 +161,7 @@ public class CustomDOF_RenderFeature : ScriptableRendererFeature
         }
 
         string fullPath = System.IO.Path.Combine(Application.streamingAssetsPath, npyRelativePath);
+        Debug.Log($"[CustomDOF] Trying to load NPY from: {fullPath}");
         _poissonSamples = LoadNpyFile(fullPath);
 
 

@@ -99,6 +99,7 @@ MonoBehaviour:
   settings:
     dofShader: {fileID: 4800000, guid: 92f3efc3e244d48469b48a9bd75f11a4, type: 3}
     renderPassEvent: 550
+  npyRelativePath: Owen_16x16.npy
 --- !u!114 &8140909073077805286
 MonoBehaviour:
   m_ObjectHideFlags: 0
