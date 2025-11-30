@@ -1,5 +1,22 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-4666305165331977509
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 873f0cc32d617f14ba882b3a5dbd2942, type: 3}
+  m_Name: CustomDOF_RenderFeature
+  m_EditorClassIdentifier: 
+  m_Active: 1
+  settings:
+    dofShader: {fileID: 4800000, guid: 92f3efc3e244d48469b48a9bd75f11a4, type: 3}
+    renderPassEvent: 550
+  npyRelativePath: Owen_16x16.npy
 --- !u!114 &-1878332245247344467
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -40,9 +57,8 @@ MonoBehaviour:
       type: 3}
   m_RendererFeatures:
   - {fileID: -1878332245247344467}
-  - {fileID: 8140909073077805286}
-  - {fileID: 4909011242093061026}
-  m_RendererFeatureMap: adc0de57c6d2eee5e6a08e69ab51fa70a2235b33b74f2044
+  - {fileID: -4666305165331977509}
+  m_RendererFeatureMap: adc0de57c6d2eee5db2ad1de2cf43dbf
   m_UseNativeRenderPass: 0
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
   xrSystemData: {fileID: 11400000, guid: 60e1133243b97e347b653163a8c01b64, type: 2}
@@ -83,33 +99,3 @@ MonoBehaviour:
   m_ClusteredRendering: 0
   m_TileSize: 32
   m_IntermediateTextureMode: 0
---- !u!114 &4909011242093061026
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 873f0cc32d617f14ba882b3a5dbd2942, type: 3}
-  m_Name: CustomDOFRenderFeature
-  m_EditorClassIdentifier: 
-  m_Active: 1
-  settings:
-    dofShader: {fileID: 4800000, guid: 92f3efc3e244d48469b48a9bd75f11a4, type: 3}
-    renderPassEvent: 550
-  npyRelativePath: Owen_16x16.npy
---- !u!114 &8140909073077805286
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e3f2b1ba5667ad44b80317b40ac7d1d5, type: 3}
-  m_Name: CustomTintRenderFeature
-  m_EditorClassIdentifier: 
-  m_Active: 1

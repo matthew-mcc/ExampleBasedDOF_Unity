@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using UnityEditor.SearchService;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
@@ -14,6 +16,9 @@ public class DoFUI_Controller : MonoBehaviour
     public Slider focusDistanceSlider;
     public Slider apertureSlider;
     public Slider focalLengthSlider;
+
+    public List<GameObject> sceneCams; 
+    private int currCam = 0;
 
     void Start()
     {
@@ -53,6 +58,16 @@ public class DoFUI_Controller : MonoBehaviour
             focalLengthSlider.value    = dof.focalLength.value;
             focalLengthSlider.onValueChanged.AddListener(OnFocalLengthChanged);
         }
+
+        int temp = 0;
+        foreach (var cam in sceneCams)
+        {   
+            if (sceneCams[temp].activeInHierarchy)
+            {
+                currCam = temp;
+            }
+            temp++;
+        }
     }
 
     void OnFocusDistanceChanged(float v)
@@ -71,5 +86,20 @@ public class DoFUI_Controller : MonoBehaviour
     {
         if (dof != null)
             dof.focalLength.value = v;
+    }
+
+    void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.C))
+        {
+            
+
+            sceneCams[currCam].SetActive(false);
+            currCam = (currCam + 1) % sceneCams.Count;
+            sceneCams[currCam].SetActive(true);
+            // currCam = currCam + 1 % sceneCams.Count;
+            // sceneCams[currCam].SetActive(false);
+
+        }
     }
 }
