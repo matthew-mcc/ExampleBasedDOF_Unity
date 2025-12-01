@@ -22,6 +22,9 @@ public class DoFUI_Controller : MonoBehaviour
 
     public GameObject controls;
 
+    [Header("Free Fly Rig")]
+    public FreeFlyCameraRig freeFlyRig; 
+
     void Start()
     {
         if (volume == null)
@@ -70,6 +73,12 @@ public class DoFUI_Controller : MonoBehaviour
             }
             temp++;
         }
+        if (freeFlyRig != null && sceneCams.Count > 0)
+        {
+            var cam = sceneCams[currCam].GetComponent<Camera>();
+            if (cam != null)
+                freeFlyRig.AttachTo(cam);
+        }
     }
 
     void OnFocusDistanceChanged(float v)
@@ -99,6 +108,13 @@ public class DoFUI_Controller : MonoBehaviour
             sceneCams[currCam].SetActive(false);
             currCam = (currCam + 1) % sceneCams.Count;
             sceneCams[currCam].SetActive(true);
+
+            if (freeFlyRig != null)
+            {
+                var cam = sceneCams[currCam].GetComponent<Camera>();
+                if (cam != null)
+                    freeFlyRig.AttachTo(cam);
+            }
             // currCam = currCam + 1 % sceneCams.Count;
             // sceneCams[currCam].SetActive(false);
 
