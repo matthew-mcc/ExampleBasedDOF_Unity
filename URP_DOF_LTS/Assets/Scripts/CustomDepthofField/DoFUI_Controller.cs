@@ -20,6 +20,8 @@ public class DoFUI_Controller : MonoBehaviour
     public List<GameObject> sceneCams; 
     private int currCam = 0;
 
+    public GameObject controls;
+
     void Start()
     {
         if (volume == null)
@@ -100,6 +102,18 @@ public class DoFUI_Controller : MonoBehaviour
             // currCam = currCam + 1 % sceneCams.Count;
             // sceneCams[currCam].SetActive(false);
 
+        }
+
+        if (Input.GetKeyDown(KeyCode.T))
+        {
+            if (controls.activeInHierarchy)
+            {
+                controls.SetActive(false);
+            }
+            else
+            {
+                controls.SetActive(true);
+            }
         }
     }
 }

@@ -1,5 +1,6 @@
 using System.Collections;
 using TMPro;
+using UnityEditor.PackageManager.UI;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.Profiling;
@@ -39,6 +40,10 @@ public class FastAPIClient : MonoBehaviour
     // UI Things
     [SerializeField]
     public TMP_Dropdown sampler_dropdown;
+    public TMP_Dropdown sample_count_dropdown;
+    public int[] sampleCountOptions = { 8, 16, 32, 64, 128, 256 };
+
+    private const int MaxKernelSize = 256;   // match your render feature
 
     // Connected to button
     public void RequestNewKernel()
@@ -53,11 +58,31 @@ public class FastAPIClient : MonoBehaviour
         Debug.Log($"[Unity] Changing sampler to: {samplerName}");
     }
 
-    // void Start()
-    // {
-        // StartCoroutine(SendTestRequest());
-    // }
+    public void SetSampleCount()
+    {
+        if (sample_count_dropdown != null && sampleCountOptions != null && sample_count_dropdown.value < sampleCountOptions.Length)
+        {
+            points = sampleCountOptions[sample_count_dropdown.value];
+        }
 
+        Debug.Log($"[Unity] Changing sample count to: {points}");
+    }
+
+    void Start()
+    {
+        SetSampler();
+
+
+        // Initialize dropdown
+        int defaultIndex = System.Array.IndexOf(sampleCountOptions, 256);
+        if (defaultIndex >= 0)
+        {
+            sample_count_dropdown.value = defaultIndex;
+            sample_count_dropdown.RefreshShownValue();
+        }
+
+        points = 256;
+    }
     private IEnumerator SendTestRequest()
     {
         // Debug.Log("[Unity] Sending POST to: " + serverUrl);
@@ -106,7 +131,7 @@ public class FastAPIClient : MonoBehaviour
             }
 
             // Build kernel from samples (map [0,1] to [-1,1])
-            int n = Mathf.Min(resp.samples.Length, 256); // or your MaxKernelSize
+            int n = Mathf.Min(resp.samples.Length, MaxKernelSize); // or your MaxKernelSize
             var kernel = new Vector4[n];
             for (int i = 0; i < n; i++)
             {
