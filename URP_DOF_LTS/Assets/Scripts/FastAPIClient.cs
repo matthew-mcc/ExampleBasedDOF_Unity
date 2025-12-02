@@ -45,6 +45,8 @@ public class FastAPIClient : MonoBehaviour
 
     private const int MaxKernelSize = 256;   // match your render feature
 
+    public KernelPreviewUI kernelPreviewUI;
+
     // Connected to button
     public void RequestNewKernel()
     {
@@ -142,6 +144,11 @@ public class FastAPIClient : MonoBehaviour
 
             MLKernelStore.Kernel = kernel;
             Debug.Log($"[Unity] MLKernelStore updated with {n} samples.");
+
+            if (kernelPreviewUI != null)
+            {
+                kernelPreviewUI.RefreshPreview();
+            }
 
         }
 
