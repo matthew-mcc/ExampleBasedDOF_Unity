@@ -2592,7 +2592,7 @@ MonoBehaviour:
   points: 256
   sampler_dropdown: {fileID: 163358794}
   sample_count_dropdown: {fileID: 1366093375}
-  sampleCountOptions: 080000001000000020000000400000008000000000010000
+  sampleCountOptions: 08000000100000002000000040000000800000000001000040020000
   kernelPreviewUI: {fileID: 457747937}
 --- !u!114 &157235594
 MonoBehaviour:
@@ -21418,6 +21418,8 @@ MonoBehaviour:
     - m_Text: 128
       m_Image: {fileID: 0}
     - m_Text: 256
+      m_Image: {fileID: 0}
+    - m_Text: 576
       m_Image: {fileID: 0}
   m_OnValueChanged:
     m_PersistentCalls:

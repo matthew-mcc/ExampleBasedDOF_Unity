@@ -10,12 +10,13 @@ Shader "Hidden/Custom/CustomDOF_Bokeh" {
 		float4 _MainTex_TexelSize;
         float _FocusDistance, _FocusRange, _Aperture; // _Aperture is bokehRadius
 
+		static const int MAX_KERNEL_SIZE = 1023;
 		// Custom Sampling
 		CBUFFER_START(UnityPerMaterial)
 			int _KernelCount;
 		CBUFFER_END
 
-		float4 _Kernel[256]; // need to find a way to not hard code this lol
+		float4 _Kernel[MAX_KERNEL_SIZE]; 
 
 		struct VertexData {
 			float4 vertex : POSITION;

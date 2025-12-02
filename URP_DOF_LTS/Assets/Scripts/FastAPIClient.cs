@@ -41,9 +41,9 @@ public class FastAPIClient : MonoBehaviour
     [SerializeField]
     public TMP_Dropdown sampler_dropdown;
     public TMP_Dropdown sample_count_dropdown;
-    public int[] sampleCountOptions = { 8, 16, 32, 64, 128, 256 };
+    public int[] sampleCountOptions = { 8, 16, 32, 64, 128, 256, 576 };
 
-    private const int MaxKernelSize = 256;   // match your render feature
+    private const int MaxKernelSize = 576;   // match your render feature
 
     public KernelPreviewUI kernelPreviewUI;
 

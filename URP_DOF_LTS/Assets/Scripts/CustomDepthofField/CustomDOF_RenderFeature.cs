@@ -21,7 +21,7 @@ public class CustomDOF_RenderFeature : ScriptableRendererFeature
 	const int postFilterPass = 3;
 
 
-    const int MaxKernelSize = 256;
+    const int MaxKernelSize = 576;
     private static Vector4[] s_Kernel;
     private static int s_KernelCount;
 
@@ -154,6 +154,7 @@ public class CustomDOF_RenderFeature : ScriptableRendererFeature
 
 
         Material dofMat = CoreUtils.CreateEngineMaterial(settings.dofShader);
+        dofMat.SetVectorArray("_Kernel", new Vector4[MaxKernelSize]);
         dofPass = new DOFPass(dofMat);
         dofPass.renderPassEvent = settings.renderPassEvent;
     }
