@@ -24,11 +24,15 @@ REFERENCE_SAMPLES = 576   # your chosen "ground truth" sample count
 # If images are sRGB PNG/JPG from Unity, do we linearize?
 ASSUME_SRGB = True
 
+# Hardcoded list of sample counts to compare.
+# If empty or None, ALL sample counts are used.
+ALLOWED_SAMPLES = [64, 256, 576]
+
 FILENAME_RE = re.compile(
     r"^(?P<samples>\d+)_samples_(?P<sampler>[A-Za-z0-9]+)_.*\.(png|jpg|jpeg)$"
 )
 
-# helpesr
+# helpers
 def load_image_as_float(path: Path) -> np.ndarray:
     """
     Load image as float32 array in [0,1], shape (H,W,3).
@@ -80,11 +84,10 @@ def compute_metrics(img: np.ndarray, ref: np.ndarray) -> dict:
     }
 
 
-
 def parse_filename(path: Path):
     """
     Attempt to extract (sampler, samples) from filename.
-    Expects something like '256_sample_LDBN_....png'.
+    Expects something like '256_samples_LDBN_....png'.
     """
     m = FILENAME_RE.match(path.name)
     if not m:
@@ -95,8 +98,13 @@ def parse_filename(path: Path):
     return sampler, samples
 
 
-
 def main():
+    # tag used in output filenames
+    if ALLOWED_SAMPLES:
+        samples_tag = "_".join(str(s) for s in sorted(set(ALLOWED_SAMPLES)))
+    else:
+        samples_tag = "all"
+
     # 1. Scan all candidate images
     entries = []
     for fname in os.listdir(IMAGE_DIR):
@@ -112,6 +120,12 @@ def main():
             continue
 
         sampler, samples = parsed
+
+        # Filter by ALLOWED_SAMPLES if specified
+        if ALLOWED_SAMPLES and samples not in ALLOWED_SAMPLES:
+            print(f"[INFO] Skipping {fname} (samples={samples} not in ALLOWED_SAMPLES={ALLOWED_SAMPLES})")
+            continue
+
         entries.append({
             "path": fpath,
             "sampler": sampler,
@@ -119,10 +133,10 @@ def main():
         })
 
     if not entries:
-        print("No valid images found in", IMAGE_DIR)
+        print("No valid images found in", IMAGE_DIR, "after applying ALLOWED_SAMPLES filter.")
         return
 
-    # 2. Find reference image: LDBN with 576 samples (or whatever you set)
+    # 2. Find reference image: LDBN with REFERENCE_SAMPLES
     ref_entry = None
     for e in entries:
         if e["sampler"] == REFERENCE_SAMPLER and e["samples"] == REFERENCE_SAMPLES:
@@ -132,7 +146,9 @@ def main():
     if ref_entry is None:
         raise RuntimeError(
             f"No reference image found for sampler={REFERENCE_SAMPLER}, "
-            f"samples={REFERENCE_SAMPLES}"
+            f"samples={REFERENCE_SAMPLES} within filtered entries.\n"
+            f"Check that REFERENCE_SAMPLES is included in ALLOWED_SAMPLES "
+            f"and that the file exists."
         )
 
     print(f"[INFO] Using reference image: {ref_entry['path']}")
@@ -159,8 +175,8 @@ def main():
             f"PSNR={metrics['psnr']:.2f} dB"
         )
 
-    # 4. Save CSV
-    csv_path = IMAGE_DIR / "metrics.csv"
+    # 4. Save CSV (tagged by sample counts)
+    csv_path = IMAGE_DIR / f"metrics_samples_{samples_tag}.csv"
     with open(csv_path, "w", newline="") as f:
         writer = csv.DictWriter(
             f,
@@ -172,8 +188,8 @@ def main():
 
     print(f"[INFO] Metrics written to {csv_path}")
 
-    # 5. Plot RMSE vs N for each sampler
-    plot_rmse_vs_samples(results, IMAGE_DIR / "rmse_vs_samples.png")
+    # 5. Plot RMSE vs N for each sampler (only for ALLOWED_SAMPLES)
+    plot_rmse_vs_samples(results, IMAGE_DIR / f"rmse_vs_samples_{samples_tag}.png")
 
 
 def plot_rmse_vs_samples(results, out_path: Path):
@@ -182,10 +198,10 @@ def plot_rmse_vs_samples(results, out_path: Path):
 
     plt.figure()
     for sampler in samplers:
-        # skip the reference itself if you like (it has rmse ~ 0)
+        # subset for this sampler
         pts = [r for r in results if r["sampler"] == sampler]
-
         pts_sorted = sorted(pts, key=lambda r: r["samples"])
+
         Ns = [p["samples"] for p in pts_sorted]
         RMSEs = [p["rmse"] for p in pts_sorted]
 
@@ -193,7 +209,7 @@ def plot_rmse_vs_samples(results, out_path: Path):
         plt.loglog(Ns, RMSEs, marker="o", label=sampler)
 
     plt.xlabel("Samples per pixel")
-    plt.ylabel("RMSE vs LDBN@576")
+    plt.ylabel(f"RMSE vs {REFERENCE_SAMPLER}@{REFERENCE_SAMPLES}")
     plt.title("DoF Sampler Convergence (RMSE vs sample count)")
     plt.grid(True, which="both", ls="--", alpha=0.3)
     plt.legend()
